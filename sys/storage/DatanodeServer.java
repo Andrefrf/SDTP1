@@ -19,7 +19,7 @@ import utils.Random;
 
 
 public class DatanodeServer implements Datanode {
-	
+
 	private static final int INITIAL_SIZE = 32;
 	private Map<String, byte[]> blocks = new HashMap<>(INITIAL_SIZE);
 
@@ -32,7 +32,7 @@ public class DatanodeServer implements Datanode {
 		final InetAddress group = InetAddress.getByName(args[0]);
 		URI serverURI = UriBuilder.fromUri(group.getHostName()).build();
 		JdkHttpServerFactory.createHttpServer(serverURI, config);
-		String serverPath = serverURI.getPath();
+//		String serverPath = serverURI.getPath();
 
 		if (!group.isMulticastAddress()) {
 			System.out.println("Not a multicast address (use range : 224.0.0.0 -- 239.255.255.255)");
@@ -47,15 +47,11 @@ public class DatanodeServer implements Datanode {
 				byte[] buffer = new byte[MAX_DATAGRAM_SIZE];
 				DatagramPacket request = new DatagramPacket(buffer, buffer.length);
 				socket.receive(request);
-				InetAddress path = request.getAddress();
-				int port = request.getPort();		
-				if(!request.getData().equals("Datanode")){
+//				InetAddress path = request.getAddress();
+//				int port = request.getPort();		
+				if(!request.getData().equals(PATH)){
 					continue;
 				}
-				System.out.write(request.getData(), 0, request.getLength());
-				request = new DatagramPacket(serverPath.getBytes(), serverPath.getBytes().length,
-						path, port);
-				socket.send(request);
 			}
 		}
 	}

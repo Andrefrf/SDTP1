@@ -15,16 +15,16 @@ import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-
 import api.storage.Namenode;
 
 
 public class NamenodeServer implements Namenode {
 
-	Trie<String, List<String>> names = new PatriciaTrie<>();
-	
-	public static void main(String[] args) throws IOException {
+	protected Trie<String, List<String>> names = new PatriciaTrie<>();//guardar o (blob-respetivos dataNodes) 
 
+	public static void main(String[] args) throws IOException {
+		
+		
 		ResourceConfig config = new ResourceConfig();
 		config.register(new NamenodeServer());
 
@@ -32,7 +32,7 @@ public class NamenodeServer implements Namenode {
 		final InetAddress group = InetAddress.getByName(args[0]);
 		URI serverURI = UriBuilder.fromUri(group.getHostName()).build();
 		JdkHttpServerFactory.createHttpServer(serverURI, config);
-		String serverPath = serverURI.getPath();
+//		String serverPath = serverURI.getPath();
 
 		System.err.println("Server ready....");
 
@@ -47,19 +47,25 @@ public class NamenodeServer implements Namenode {
 				byte[] buffer = new byte[MAX_DATAGRAM_SIZE];
 				DatagramPacket request = new DatagramPacket(buffer, buffer.length);
 				socket.receive(request);
-				InetAddress path = request.getAddress();
-				int port = request.getPort();
-				if(!request.getData().equals("Namenode")) {
+//				InetAddress path = request.getAddress();
+//				int port = request.getPort();
+				if(!request.getData().equals(PATH)) {
 					continue;
 				}
-				System.out.write(request.getData(), 0, request.getLength());
-				request = new DatagramPacket(serverPath.getBytes(), serverPath.getBytes().length,
-						path, port);
-				socket.send(request);
+				
+//				long temp = System.currentTimeMillis() + 5000;
+//				
+//				while( System.currentTimeMillis() < temp) {
+//					System.out.write(request.getData(), 0, request.getLength());
+//					request = new DatagramPacket(serverPath.getBytes(), serverPath.getBytes().length,
+//							path, port);
+//					socket.send(request);
+//					
+//				}
 			}
 		}
 	}
-	
+
 	@Override
 	public List<String> list(String prefix) {
 		return new ArrayList<>(names.prefixMap( prefix ).keySet());
