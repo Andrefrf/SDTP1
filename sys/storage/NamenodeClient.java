@@ -4,23 +4,34 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
+import org.glassfish.jersey.client.ClientConfig;
 
 import api.storage.Namenode;
 
 
 public class NamenodeClient implements Namenode {
+	protected static InetAddress serverAddress;
 
 	Trie<String, List<String>> names = new PatriciaTrie<>();
 	
 	public static void main(String[] args) throws IOException {
-		InetAddress server = null;
+		
+		ClientConfig config = new ClientConfig();
+		Client client = ClientBuilder.newClient(config);
+		
 		final int port = 9000 ;
 		final InetAddress group = InetAddress.getByName( args[0] ) ;
 
@@ -35,14 +46,17 @@ public class NamenodeClient implements Namenode {
 		    byte[] buffer = new byte[65536];
 		    request = new DatagramPacket(buffer,buffer.length);
 		    socket.receive(request);
-		    server = request.getAddress();
-		    
+		    serverAddress = request.getAddress();
 		}
-		 
+		URI baseURI = UriBuilder.fromPath(serverAddress.getHostName()).build();
+		WebTarget target = client.target(baseURI);
+		
+		
 	}
 	
 	@Override
 	public List<String> list(String prefix) {
+		
 		return new ArrayList<>(names.prefixMap( prefix ).keySet());
 	}
 
