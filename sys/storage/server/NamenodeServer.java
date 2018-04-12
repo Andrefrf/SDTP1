@@ -1,4 +1,4 @@
-package sys.storage;
+package sys.storage.server;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -22,9 +22,9 @@ public class NamenodeServer implements Namenode {
 
 	protected Trie<String, List<String>> names = new PatriciaTrie<>();//guardar o (blob-respetivos dataNodes) 
 
+	@SuppressWarnings("unlikely-arg-type")
 	public static void main(String[] args) throws IOException {
-		
-		
+
 		ResourceConfig config = new ResourceConfig();
 		config.register(new NamenodeServer());
 
@@ -32,8 +32,8 @@ public class NamenodeServer implements Namenode {
 		final InetAddress group = InetAddress.getByName(args[0]);
 		URI serverURI = UriBuilder.fromUri(group.getHostName()).build();
 		JdkHttpServerFactory.createHttpServer(serverURI, config);
-//		String serverPath = serverURI.getPath();
-
+		String serverPath = serverURI.getPath();
+		
 		System.err.println("Server ready....");
 
 		if (!group.isMulticastAddress()) {
@@ -47,21 +47,14 @@ public class NamenodeServer implements Namenode {
 				byte[] buffer = new byte[MAX_DATAGRAM_SIZE];
 				DatagramPacket request = new DatagramPacket(buffer, buffer.length);
 				socket.receive(request);
-//				InetAddress path = request.getAddress();
-//				int port = request.getPort();
+				InetAddress path = request.getAddress();
+				int port = request.getPort();
 				if(!request.getData().equals(PATH)) {
 					continue;
 				}
-				
-//				long temp = System.currentTimeMillis() + 5000;
-//				
-//				while( System.currentTimeMillis() < temp) {
-//					System.out.write(request.getData(), 0, request.getLength());
-//					request = new DatagramPacket(serverPath.getBytes(), serverPath.getBytes().length,
-//							path, port);
-//					socket.send(request);
-//					
-//				}
+				request = new DatagramPacket(serverPath.getBytes(), serverPath.getBytes().length,
+						path, port);
+				socket.send(request);
 			}
 		}
 	}

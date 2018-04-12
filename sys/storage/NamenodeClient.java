@@ -1,90 +1,86 @@
 package sys.storage;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-
+import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
-import org.glassfish.jersey.client.ClientConfig;
-
 import api.storage.Namenode;
-
 
 public class NamenodeClient implements Namenode {
 	protected static InetAddress serverAddress;
 
 	Trie<String, List<String>> names = new PatriciaTrie<>();
-	
-	public static void main(String[] args) throws IOException {
-		
-		ClientConfig config = new ClientConfig();
-		Client client = ClientBuilder.newClient(config);
-		
-		final int port = 9000 ;
-		final InetAddress group = InetAddress.getByName( args[0] ) ;
+	WebTarget target;
 
-		if( ! group.isMulticastAddress()) {
-		    System.out.println( "Not a multicast address (use range : 224.0.0.0 -- 239.255.255.255)");
-		}
-
-		byte[] data = "Namenode".getBytes();
-		try(MulticastSocket socket = new MulticastSocket()) {
-		    DatagramPacket request = new DatagramPacket( data, data.length, group, port ) ;
-		    socket.send( request ) ; 
-		    byte[] buffer = new byte[65536];
-		    request = new DatagramPacket(buffer,buffer.length);
-		    socket.receive(request);
-		    serverAddress = request.getAddress();
-		}
-		URI baseURI = UriBuilder.fromPath(serverAddress.getHostName()).build();
-		WebTarget target = client.target(baseURI);
-		
-		
+	public NamenodeClient() {
+		target = null;
 	}
-	
+
 	@Override
 	public List<String> list(String prefix) {
-		
 		return new ArrayList<>(names.prefixMap( prefix ).keySet());
 	}
 
 	@Override
-	public void create(String name,  List<String> blocks) {
-		if( names.putIfAbsent(name, new ArrayList<>(blocks)) != null )
-			throw new WebApplicationException(Status.CONFLICT);
+	public void create(String name, List<String> blocks) {
+		Response response = target.path( Namenode.PATH + name)
+				.request()
+				.post( Entity.entity( blocks, MediaType.APPLICATION_OCTET_STREAM));
+		
+		if( response.hasEntity() ) {
+			String id = response.readEntity(String.class);
+			System.out.println( "data resource id: " + id );
+		} else
+			System.err.println( response.getStatus() );
 	}
 
 	@Override
 	public void delete(String prefix) {
-		List<String> keys = new ArrayList<>(names.prefixMap( prefix ).keySet());
-		if( ! keys.isEmpty() )
-			names.keySet().removeAll( keys );
+		Response response = target.path( Namenode.PATH + "/list/").queryParam("prefix", prefix)
+				.request()
+				.delete();
+		
+		if( response.hasEntity() ) {
+			String id = response.readEntity(String.class);
+			System.out.println( id );
+		} else
+			System.err.println( response.getStatus() );
 	}
 
 	@Override
 	public void update(String name, List<String> blocks) {
-		if( names.putIfAbsent( name, new ArrayList<>(blocks)) == null ) {
-			throw new WebApplicationException(Status.NOT_FOUND);
-		}
+		Response response = target.path( Namenode.PATH + name)
+				.request()
+				.put( Entity.entity( blocks, MediaType.APPLICATION_OCTET_STREAM));
+		
+		if( response.hasEntity() ) {
+			String id = response.readEntity(String.class);
+			System.out.println( id );
+		} else
+			System.err.println( response.getStatus() );
 	}
 
 	@Override
 	public List<String> read(String name) {
-		List<String> blocks = names.get( name );
-		if( blocks == null )
-			throw new WebApplicationException(Status.NOT_FOUND);
-		return blocks;
+		Response response = target.path( Namenode.PATH + name)
+				.request()
+				.get();
+		
+		if( response.hasEntity() ) {
+			//ha uma melhor maneira de tratar da list , mudar assim que se souber uma melhor maneira
+			List<String> b = response.readEntity(new GenericType<List<String>>(){});
+			System.out.println( "list: " + b );
+			return b;
+		} else
+			System.err.println( response.getStatus() );
+		return null;
 	}
 }

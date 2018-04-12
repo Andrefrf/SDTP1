@@ -25,22 +25,24 @@ public class BufferedBlobWriter implements BlobWriter {
 	final Namenode namenode; 
 	final Datanode[] datanodes;
 	final List<String> blocks = new LinkedList<>();
+	int spot;
 	
 	public BufferedBlobWriter(String name, Namenode namenode, Datanode[] datanodes, int blockSize ) {
 		this.name = name;
 		this.namenode = namenode;
 		this.datanodes = datanodes;
-
+		this.spot = 0;
 		this.blockSize = blockSize;
 		this.buf = new ByteArrayOutputStream( blockSize );
 	}
 
 	private void flush( byte[] data, boolean eob ) {
-		blocks.add( datanodes[0].createBlock(data)  );
+		blocks.add( datanodes[spot].createBlock(data)  );
 		if( eob ) {
 			namenode.create(name, blocks);
 			blocks.clear();
 		}
+		spot++;
 	}
 
 	@Override

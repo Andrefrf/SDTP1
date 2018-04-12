@@ -1,4 +1,4 @@
-package sys.storage;
+package sys.storage.server;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -52,6 +52,7 @@ public class DatanodeServer implements Datanode {
 				if(!request.getData().equals(PATH)){
 					continue;
 				}
+				
 			}
 		}
 	}
